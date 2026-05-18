@@ -21,3 +21,64 @@ datasource db {
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  SNACK
+  DINNER
+  SUPPER
+}
+
+enum FastingType {
+  FAST_16_8
+  FAST_18_6
+  FAST_20_4
+  FAST_24H
+  CUSTOM
+}
+
+model Meal {
+  id          String    @id @default(cuid())
+
+  userId      String    @db.Uuid
+
+  description String
+  calories    Int
+
+  mealType    MealType
+
+  consumedAt  DateTime
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model CalorieGoal {
+  id             String   @id @default(cuid())
+
+  userId         String   @unique @db.Uuid
+
+  dailyCalories  Int
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model FastingSession {
+  id              String       @id @default(cuid())
+
+  userId          String       @db.Uuid
+
+  plannedType     FastingType
+
+  startedAt       DateTime
+  endedAt         DateTime?
+
+  durationMinutes Int?
+
+  isActive        Boolean      @default(true)
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
