@@ -1,28 +1,8 @@
 import { updateSession } from "@/lib/supabase/proxy";
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
 
 export async function proxy(request: NextRequest) {
-    const response = await updateSession(request);
-
-    const isAuthPage = request.nextUrl.pathname.startsWith("/login") || request.nextUrl.pathname.startsWith("/register");
-
-    const isProtectedRoute = request.nextUrl.pathname.startsWith("/dashboard") || request.nextUrl.pathname.startsWith("/meals") || request.nextUrl.pathname.startsWith("/fasting")
-
-    const hasSession = request.cookies.get("sb-access-token");
-
-    if (isProtectedRoute && !hasSession) {
-        return NextResponse.redirect(
-            new URL("/login", request.url)
-        );
-    }
-
-    if (isAuthPage && hasSession) {
-        return NextResponse.redirect(
-            new URL("/dashboard", request.url)
-        );
-    }
-
-    return response;
+    return await updateSession(request);
 }
 
 export const config = {
