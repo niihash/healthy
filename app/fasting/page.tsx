@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, } from "react";
 
 type FastingSession = {
@@ -12,6 +14,8 @@ type FastingSession = {
 };
 
 export default function FastingPage() {
+    const router = useRouter();
+
     const [currentSession, setCurrentSession] = useState<FastingSession | null>(null);
 
     const [history, setHistory] = useState<FastingSession[]>([]);
@@ -24,7 +28,24 @@ export default function FastingPage() {
 
     const [error, setError] = useState("");
 
-    const [now, setNow] = useState(Date.now());
+    const [now, setNow] = useState(0);
+
+    async function handleLogout() {
+        try {
+            await fetch(
+                "/api/auth/logout",
+                {
+                    method: "POST",
+                }
+            );
+
+            router.push("/login");
+
+            router.refresh();
+        } catch (error) {
+            console.error(error);
+        }
+    }
 
     useEffect(() => {
         async function loadData() {
@@ -166,10 +187,55 @@ export default function FastingPage() {
 
     return (
         <div className="p-6">
-            <div className="mx-auto max-w-2xl">
-                <h1 className="mb-6 text-3xl font-bold">
-                    Fasting
-                </h1>
+            <div className="mx-auto max-w-5xl">
+                <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold">
+                            Fasting
+                        </h1>
+
+                        <p className="text-muted-foreground">
+                            Gerencie suas sessões de jejum
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Link
+                            href="/dashboard"
+                            className="rounded border px-3 py-2 text-sm"
+                        >
+                            Dashboard
+                        </Link>
+
+                        <Link
+                            href="/meals"
+                            className="rounded border px-3 py-2 text-sm"
+                        >
+                            Meals
+                        </Link>
+
+                        <Link
+                            href="/calorie-goal"
+                            className="rounded border px-3 py-2 text-sm"
+                        >
+                            Goal
+                        </Link>
+
+                        <Link
+                            href="/fasting"
+                            className="rounded border px-3 py-2 text-sm"
+                        >
+                            Fasting
+                        </Link>
+
+                        <button
+                            onClick={handleLogout}
+                            className="rounded bg-red-500 px-3 py-2 text-sm text-white"
+                        >
+                            Logout
+                        </button>
+                    </div>
+                </div>
 
                 {error && (
                     <p className="mb-4 text-red-500">
@@ -285,7 +351,8 @@ export default function FastingPage() {
                     {history.length ===
                         0 ? (
                         <p>
-                            No fasting history found.
+                            No fasting history
+                            found.
                         </p>
                     ) : (
                         <div className="flex flex-col gap-4">
