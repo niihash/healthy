@@ -1,35 +1,36 @@
 "use client";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+
 import { FormEvent, useState } from "react";
 
-export default function Login() {
-    const router = useRouter();
-
+export default function ForgotPassword() {
     const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
 
     const [loading, setLoading] = useState(false);
+
     const [error, setError] = useState("");
+
+    const [success, setSuccess] = useState("");
 
     async function handleSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
 
         setLoading(true);
+
         setError("");
+        setSuccess("");
 
         try {
             const response = await fetch(
-                "/api/auth/login",
+                "/api/auth/forgot-password",
                 {
                     method: "POST",
+
                     headers: {
-                        "Content-Type":
-                            "application/json",
+                        "Content-Type": "application/json",
                     },
+
                     body: JSON.stringify({
                         email,
-                        password,
                     }),
                 }
             );
@@ -37,14 +38,14 @@ export default function Login() {
             const data = await response.json();
 
             if (!response.ok) {
-                setError(
-                    data.error ||
-                    "Invalid credentials"
-                );
+                setError(data.error || "Failed to send email");
+
                 return;
             }
 
-            router.push("/dashboard");
+            setSuccess(
+                "Recovery email sent"
+            );
         } catch {
             setError("Internal server error");
         } finally {
@@ -55,11 +56,13 @@ export default function Login() {
     return (
         <div className="flex min-h-screen items-center justify-center">
             <form
-                onSubmit={handleSubmit}
+                onSubmit={
+                    handleSubmit
+                }
                 className="flex w-full max-w-sm flex-col gap-4 rounded border p-6"
             >
                 <h1 className="text-2xl font-bold">
-                    Login
+                    Recover Password
                 </h1>
 
                 <input
@@ -67,17 +70,9 @@ export default function Login() {
                     placeholder="Email"
                     value={email}
                     onChange={(e) =>
-                        setEmail(e.target.value)
-                    }
-                    className="rounded border p-2"
-                />
-
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) =>
-                        setPassword(e.target.value)
+                        setEmail(
+                            e.target.value
+                        )
                     }
                     className="rounded border p-2"
                 />
@@ -88,18 +83,21 @@ export default function Login() {
                     </p>
                 )}
 
-                <button type="submit" disabled={loading} className="rounded bg-black p-2 text-white disabled:opacity-50">
-                    {loading ? "Loading..." : "Login"}
-                </button>
+                {success && (
+                    <p className="text-sm text-green-600">
+                        {success}
+                    </p>
+                )}
 
-                <div className="text-center">
-                    <Link
-                        href="/forgot-password"
-                        className="text-sm text-blue-500 hover:underline"
-                    >
-                        Forgot password?
-                    </Link>
-                </div>
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="rounded bg-black p-2 text-white disabled:opacity-50"
+                >
+                    {loading
+                        ? "Sending..."
+                        : "Send recovery email"}
+                </button>
             </form>
         </div>
     );
