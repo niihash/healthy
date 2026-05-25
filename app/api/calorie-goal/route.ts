@@ -1,6 +1,7 @@
-import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+
 import { calorieGoalSchema } from "@/lib/validations/calorieGoal";
+
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -14,12 +15,26 @@ export async function GET() {
                 error: "Unauthorized",
             }, {
                 status: 401,
-            })
+            });
         }
 
-        const calorieGoal = await prisma.calorieGoal.findUnique({
-            where: { userId: user.id },
-        });
+        const response = await supabase
+            .from("CalorieGoal")
+            .select("*")
+            .eq("userId", user.id)
+            .single();
+
+        const calorieGoal = response.data;
+
+        const error = response.error;
+
+        if (error && error.code !== "PGRST116") {
+            return NextResponse.json({
+                error: error.message,
+            }, {
+                status: 500,
+            });
+        }
 
         return NextResponse.json(
             calorieGoal, {
@@ -60,24 +75,70 @@ export async function PUT(request: Request) {
             });
         }
 
-        const calorieGoal = await prisma.calorieGoal.upsert({
-            where: {
-                userId: user.id,
-            },
-            update: {
-                dailyCalories: validation.data.dailyCalories,
-            },
-            create: {
-                userId: user.id,
-                dailyCalories: validation.data.dailyCalories,
-            },
-        });
+        const existingResponse = await supabase
+            .from("CalorieGoal")
+            .select("*")
+            .eq("userId", user.id)
+            .single();
 
-        return NextResponse.json(
-            calorieGoal,
-            {
+        const existingGoal = existingResponse.data;
+
+        if (existingGoal) {
+            const updateResponse = await supabase
+                .from("CalorieGoal")
+                .update({
+                    dailyCalories: validation
+                        .data
+                        .dailyCalories,
+                })
+                .eq("userId", user.id)
+                .select()
+                .single();
+
+            if (
+                updateResponse.error
+            ) {
+                return NextResponse.json({
+                    error: updateResponse
+                        .error
+                        .message,
+                }, {
+                    status: 500,
+                });
+            }
+
+            return NextResponse.json(
+                updateResponse.data, {
                 status: 200,
             });
+        }
+
+        const createResponse = await supabase
+            .from("CalorieGoal")
+            .insert({
+                userId: user.id,
+
+                dailyCalories: validation
+                    .data
+                    .dailyCalories,
+            })
+            .select()
+            .single();
+
+        if (createResponse.error) {
+            return NextResponse.json({
+                error: createResponse
+                    .error
+                    .message,
+            }, {
+                status: 500,
+            });
+        }
+
+        return NextResponse.json(
+            createResponse.data, {
+            status: 201,
+        });
     } catch {
         return NextResponse.json({
             error: "Internal server error",

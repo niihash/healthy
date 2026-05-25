@@ -1,4 +1,3 @@
-import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { createMealSchema } from "@/lib/validations/createMeal";
 import { NextResponse } from "next/server";
@@ -17,14 +16,21 @@ export async function GET(request: Request) {
             });
         }
 
-        const meals = await prisma.meal.findMany({
-            where: {
-                userId: user.id,
-            },
-            orderBy: {
-                consumedAt: "desc",
-            }
-        });
+        const { data: meals, error, } = await supabase
+            .from("Meal")
+            .select("*")
+            .eq("userId", user.id)
+            .order("consumedAt", {
+                ascending: false,
+            });
+
+        if (error) {
+            return NextResponse.json({
+                error: error.message,
+            }, {
+                status: 500,
+            });
+        }
 
         return NextResponse.json(
             meals, {
@@ -65,15 +71,25 @@ export async function POST(request: Request) {
             });
         }
 
-        const meal = await prisma.meal.create({
-            data: {
+        const { data: meal, error, } = await supabase
+            .from("Meal")
+            .insert({
                 userId: user.id,
                 description: validation.data.description,
                 calories: validation.data.calories,
                 mealType: validation.data.mealType,
                 consumedAt: validation.data.consumedAt,
-            },
-        });
+            })
+            .select()
+            .single();
+
+        if (error) {
+            return NextResponse.json({
+                error: error.message,
+            }, {
+                status: 500,
+            });
+        }
 
         return NextResponse.json(
             meal,

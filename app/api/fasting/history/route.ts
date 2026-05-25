@@ -16,15 +16,26 @@ export async function GET() {
             });
         }
 
-        const fastingSessions = await prisma.fastingSession.findMany({
-            where: {
-                userId: user.id,
-                isActive: false,
-            },
-            orderBy: {
-                startedAt: "desc",
-            },
-        });
+        const response = await supabase
+            .from("FastingSession")
+            .select("*")
+            .eq("userId", user.id)
+            .eq("isActive", false)
+            .order("startedAt", {
+                ascending: false,
+            });
+
+        const fastingSessions = response.data;
+
+        const error = response.error;
+
+        if (error) {
+            return NextResponse.json({
+                error: error.message,
+            }, {
+                status: 500,
+            });
+        }
 
         return NextResponse.json(
             fastingSessions, {

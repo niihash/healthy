@@ -1,6 +1,7 @@
-import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+
 import { startFastingSchema } from "@/lib/validations/startFasting";
+
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -29,33 +30,63 @@ export async function POST(request: Request) {
             });
         }
 
-        const activeSession = await prisma.fastingSession.findFirst({
-            where: {
-                userId: user.id,
-                isActive: true,
-            },
-        });
+        const activeResponse = await supabase
+            .from("FastingSession")
+            .select("*")
+            .eq("userId", user.id)
+            .eq("isActive", true)
+            .limit(1)
+            .maybeSingle();
+
+        const activeSession = activeResponse.data;
+
+        if (activeResponse.error) {
+            return NextResponse.json({
+                error: activeResponse
+                    .error
+                    .message,
+            }, {
+                status: 500,
+            });
+        }
 
         if (activeSession) {
             return NextResponse.json({
-                error: "Existe uma sessao de jejum ativa no momento",
+                error: "Existe uma sessão de jejum ativa no momento",
             }, {
                 status: 409,
             });
         }
 
-        const fastingSession = await prisma.fastingSession.create({
-            data: {
+        const createResponse = await supabase
+            .from("FastingSession")
+            .insert({
                 userId: user.id,
-                plannedType: validation.data.plannedType,
+
+                plannedType: validation
+                    .data
+                    .plannedType,
+
                 startedAt: new Date(),
+
                 isActive: true,
-            },
-        });
+            })
+            .select()
+            .single();
+
+        if (createResponse.error) {
+            return NextResponse.json({
+                error: createResponse
+                    .error
+                    .message,
+            }, {
+                status: 500,
+            });
+        }
 
         return NextResponse.json(
-            fastingSession, {
-            status: 200,
+            createResponse.data, {
+            status: 201,
         });
     } catch {
         return NextResponse.json({

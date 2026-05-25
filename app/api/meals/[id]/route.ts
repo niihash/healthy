@@ -21,14 +21,14 @@ export async function GET(request: Request, { params }: Params) {
             });
         }
 
-        const meal = await prisma.meal.findFirst({
-            where: {
-                id,
-                userId: user.id,
-            },
-        });
+        const { data: meal, error, } = await supabase
+            .from("Meal")
+            .select("*")
+            .eq("id", id)
+            .eq("userId", user.id)
+            .single();
 
-        if (!meal) {
+        if (error || !meal) {
             return NextResponse.json({
                 error: "Meal not found",
             }, {
@@ -80,14 +80,18 @@ export async function PATCH(request: Request, { params }: Params) {
             });
         }
 
-        const meal = await prisma.meal.findFirst({
-            where: {
-                id,
-                userId: user.id,
-            },
-        });
+        const response = await supabase
+            .from("Meal")
+            .select("*")
+            .eq("id", id)
+            .eq("userId", user.id)
+            .single();
 
-        if (!meal) {
+        const meal = response.data;
+
+        const findError = response.error;
+
+        if (findError || !meal) {
             return NextResponse.json({
                 error: "Meal not found",
             }, {
@@ -95,15 +99,28 @@ export async function PATCH(request: Request, { params }: Params) {
             });
         }
 
-        const updatedMeal = await prisma.meal.update({
-            where: {
-                id,
-            },
-            data: validation.data,
-        });
+        const responseUpdate = await supabase
+            .from("Meal")
+            .update(validation.data)
+            .eq("id", id)
+            .eq("userId", user.id)
+            .select()
+            .single();
+
+        const updateMeal = responseUpdate.data;
+
+        const updateError = responseUpdate.error;
+
+        if (updateError) {
+            return NextResponse.json({
+                error: updateError.message,
+            }, {
+                status: 500,
+            });
+        }
 
         return NextResponse.json(
-            updatedMeal, {
+            updateMeal, {
             status: 200,
         });
     } catch {
@@ -132,12 +149,16 @@ export async function DELETE(request: Request, { params }: Params) {
             });
         }
 
-        const meal = await prisma.meal.findFirst({
-            where: {
-                id,
-                userId: user.id,
-            },
-        });
+        const response = await supabase
+            .from("Meal")
+            .select("*")
+            .eq("id", id)
+            .eq("userId", user.id)
+            .single()
+
+        const meal = response.data;
+
+        const findError = response.error;
 
         if (!meal) {
             return NextResponse.json({
@@ -147,11 +168,21 @@ export async function DELETE(request: Request, { params }: Params) {
             });
         }
 
-        await prisma.meal.delete({
-            where: {
-                id,
-            },
-        });
+        const responseDelete = await supabase
+            .from("Meal")
+            .delete()
+            .eq("id", id)
+            .eq("userId", user.id)
+
+        const deleteError = responseDelete.error;
+
+        if (deleteError) {
+            return NextResponse.json({
+                error: deleteError.message,
+            }, {
+                status: 500,
+            });
+        }
 
         return NextResponse.json({
             message:

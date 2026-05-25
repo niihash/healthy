@@ -1,7 +1,6 @@
-import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+
 import { NextResponse } from "next/server";
-import { ca } from "zod/locales";
 
 export async function POST() {
     try {
@@ -17,16 +16,32 @@ export async function POST() {
             });
         }
 
-        const activeSession = await prisma.fastingSession.findFirst({
-            where: {
-                userId: user.id,
-                isActive: true,
-            },
-        });
+        const activeResponse = await supabase
+            .from("FastingSession")
+            .select("*")
+            .eq("userId", user.id)
+            .eq("isActive", true)
+            .order("startedAt", {
+                ascending: false,
+            })
+            .limit(1)
+            .maybeSingle();
+
+        const activeSession = activeResponse.data;
+
+        if (activeResponse.error) {
+            return NextResponse.json({
+                error: activeResponse
+                    .error
+                    .message,
+            }, {
+                status: 500,
+            });
+        }
 
         if (!activeSession) {
             return NextResponse.json({
-                error: "Nenhuma sessao ativa encontrada",
+                error: "Nenhuma sessão ativa encontrada",
             }, {
                 status: 404,
             });
@@ -34,21 +49,36 @@ export async function POST() {
 
         const endedAt = new Date();
 
-        const durationMinutes = Math.floor((endedAt.getTime() - activeSession.startedAt.getTime()) / 1000 / 60);
+        const startedAt = new Date(activeSession.startedAt);
 
-        const fastingSession = await prisma.fastingSession.update({
-            where: {
-                id: activeSession.id,
-            },
-            data: {
+        const durationMinutes = Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000 / 60);
+
+        const updateResponse = await supabase
+            .from("FastingSession")
+            .update({
                 endedAt,
+
                 durationMinutes,
+
                 isActive: false,
-            },
-        });
+            })
+            .eq("id", activeSession.id)
+            .eq("userId", user.id)
+            .select()
+            .single();
+
+        if (updateResponse.error) {
+            return NextResponse.json({
+                error: updateResponse
+                    .error
+                    .message,
+            }, {
+                status: 500,
+            });
+        }
 
         return NextResponse.json(
-            fastingSession, {
+            updateResponse.data, {
             status: 200,
         });
     } catch {

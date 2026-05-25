@@ -16,15 +16,29 @@ export async function GET() {
             })
         }
 
-        const fastingSession = await prisma.fastingSession.findFirst({
-            where: {
-                userId: user.id,
-                isActive: true,
-            },
-            orderBy: {
-                startedAt: "desc",
-            },
-        });
+        const response = await supabase
+            .from("FastingSession")
+            .select("*")
+            .eq("userId", user.id)
+            .eq("isActive", true)
+            .order("startedAt", {
+                ascending: false,
+            })
+            .limit(1)
+            .maybeSingle()
+
+        const fastingSession = response.data;
+
+        const error = response.error;
+
+        if (error) {
+            return NextResponse.json({
+                error:
+                    error.message,
+            }, {
+                status: 500,
+            });
+        }
 
         return NextResponse.json(
             fastingSession, {
