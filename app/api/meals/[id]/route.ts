@@ -1,4 +1,3 @@
-import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { updateMealSchema } from "@/lib/validations/updateMeal";
 import { NextResponse } from "next/server";
