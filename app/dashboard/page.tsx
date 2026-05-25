@@ -23,6 +23,30 @@ type FastingSession = {
     isActive: boolean;
 };
 
+type DailyCalories = {
+    date: string;
+    calories: number;
+};
+
+type DailyFasting = {
+    date: string;
+    hours: number;
+};
+
+type DashboardSummary = {
+    dailyCalories: DailyCalories[];
+
+    dailyFasting: DailyFasting[];
+
+    dailyGoal: number | null;
+
+    averageCalories: number;
+
+    completedFasts: number;
+
+    averageFastingHours: number;
+};
+
 export default function Dashboard() {
     const router = useRouter();
 
@@ -33,6 +57,8 @@ export default function Dashboard() {
     const [fasting, setFasting] = useState<FastingSession | null>(null);
 
     const [loading, setLoading] = useState(true);
+
+    const [summary, setSummary] = useState<DashboardSummary | null>(null);
 
     async function handleLogout() {
         try {
@@ -52,12 +78,14 @@ export default function Dashboard() {
     useEffect(() => {
         async function loadData() {
             try {
-                const [mealsResponse, goalResponse, fastingResponse,] = await Promise.all([
+                const [mealsResponse, goalResponse, fastingResponse, summaryResponse] = await Promise.all([
                     fetch("/api/meals"),
 
                     fetch("/api/calorie-goal"),
 
                     fetch("/api/fasting/current"),
+
+                    fetch("/api/dashboard/summary"),
                 ]);
 
                 const mealsData = await mealsResponse.json();
@@ -66,11 +94,15 @@ export default function Dashboard() {
 
                 const fastingData = await fastingResponse.json();
 
+                const summaryData = await summaryResponse.json();
+
                 setMeals(mealsData);
 
                 setGoal(goalData);
 
                 setFasting(fastingData);
+
+                setSummary(summaryData);
             } catch (error) {
                 console.error(error);
             } finally {
@@ -140,7 +172,7 @@ export default function Dashboard() {
                 </nav>
             </div>
 
-            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
                 <div className="rounded-xl border p-4">
                     <h2 className="text-sm text-muted-foreground">
                         Calorias hoje
@@ -204,6 +236,150 @@ export default function Dashboard() {
                     <p className="mt-2 text-3xl font-bold">
                         {progress}%
                     </p>
+                </div>
+
+                <div className="rounded-xl border p-4">
+                    <h2 className="text-sm text-muted-foreground">
+                        Média semanal
+                    </h2>
+
+                    <p className="mt-2 text-3xl font-bold">
+                        {summary?.averageCalories ?? 0}
+                    </p>
+
+                    <p className="text-sm text-muted-foreground">
+                        kcal/dia
+                    </p>
+                </div>
+
+                <div className="rounded-xl border p-4">
+                    <h2 className="text-sm text-muted-foreground">
+                        Jejuns concluídos
+                    </h2>
+
+                    <p className="mt-2 text-3xl font-bold">
+                        {summary?.completedFasts ?? 0}
+                    </p>
+
+                    <p className="text-sm text-muted-foreground">
+                        últimos 7 dias
+                    </p>
+                </div>
+
+                <div className="rounded-xl border p-4">
+                    <h2 className="text-sm text-muted-foreground">
+                        Média de jejum
+                    </h2>
+
+                    <p className="mt-2 text-3xl font-bold">
+                        {
+                            summary?.averageFastingHours ??
+                            0
+                        }h
+                    </p>
+
+                    <p className="text-sm text-muted-foreground">
+                        por sessão
+                    </p>
+                </div>
+            </section>
+
+            <section className="grid gap-6 xl:grid-cols-2">
+                <div className="rounded-xl border p-4">
+                    <h2 className="mb-4 text-xl font-semibold">
+                        Calorias últimos 7 dias
+                    </h2>
+
+                    <div className="space-y-3">
+                        {summary?.dailyCalories.map(
+                            (day) => {
+                                const percentage =
+                                    goal?.dailyCalories
+                                        ? (
+                                            day.calories /
+                                            goal.dailyCalories
+                                        ) * 100
+                                        : 0;
+
+                                return (
+                                    <div
+                                        key={day.date}
+                                    >
+                                        <div className="mb-1 flex items-center justify-between text-sm">
+                                            <span>
+                                                {new Date(
+                                                    day.date
+                                                ).toLocaleDateString()}
+                                            </span>
+
+                                            <span>
+                                                {
+                                                    day.calories
+                                                }
+                                                {" "}
+                                                kcal
+                                            </span>
+                                        </div>
+
+                                        <div className="h-3 overflow-hidden rounded bg-gray-200">
+                                            <div
+                                                className="h-full bg-black"
+                                                style={{
+                                                    width: `${Math.min(
+                                                        percentage,
+                                                        100
+                                                    )}%`,
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            }
+                        )}
+                    </div>
+                </div>
+
+                <div className="rounded-xl border p-4">
+                    <h2 className="mb-4 text-xl font-semibold">
+                        Jejum últimos 7 dias
+                    </h2>
+
+                    <div className="space-y-3">
+                        {summary?.dailyFasting.map(
+                            (day) => (
+                                <div
+                                    key={day.date}
+                                >
+                                    <div className="mb-1 flex items-center justify-between text-sm">
+                                        <span>
+                                            {new Date(
+                                                day.date
+                                            ).toLocaleDateString()}
+                                        </span>
+
+                                        <span>
+                                            {
+                                                day.hours
+                                            }h
+                                        </span>
+                                    </div>
+
+                                    <div className="h-3 overflow-hidden rounded bg-gray-200">
+                                        <div
+                                            className="h-full bg-black"
+                                            style={{
+                                                width: `${Math.min(
+                                                    day.hours *
+                                                    4,
+                                                    100
+                                                )}%`,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            )
+                        )}
+                    </div>
                 </div>
             </section>
 
