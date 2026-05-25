@@ -3,7 +3,7 @@
 #+text: Uma aplicação web full-stack voltada para o acompanhamento consciente de consumo calórico e ciclos de jejum intermitente.
 
 ** [[https://healthy.niihash.com][Acesse a aplicação em produção]]
-** [[#][Assista ao vídeo demonstrativo (3-5 min)]]
+** [[https://drive.google.com/file/d/19vZNd5GOC0_e6Sp5iPuSTwwxO8CpBfgR/view?usp=sharing][Assista ao vídeo demonstrativo]]
 
 ---
 
