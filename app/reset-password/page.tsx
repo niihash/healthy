@@ -2,8 +2,11 @@
 
 import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 export default function ResetPassword() {
+    const router = useRouter();
+
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -30,21 +33,25 @@ export default function ResetPassword() {
         try {
             const supabase = createClient();
 
-            const { error: updateError } = await supabase.auth.updateUser({
-                password: password,
-            });
+            const { error: updateError } = await supabase.auth.updateUser({ password: password, });
 
             if (updateError) {
                 setError(updateError.message);
                 return;
             }
 
-            setSuccess("Password reset successfully! You can now log in.");
+            await supabase.auth.signOut();
+
+            setSuccess("Password reset successfully! Redirecting to login...");
             setPassword("");
             setConfirmPassword("");
+
+            setTimeout(() => {
+                router.push("/login");
+            }, 3000);
+
         } catch {
             setError("Internal server error");
-        } finally {
             setLoading(false);
         }
     }
@@ -63,6 +70,7 @@ export default function ResetPassword() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    disabled={loading || !!success}
                     className="rounded border p-2"
                 />
 
@@ -72,6 +80,7 @@ export default function ResetPassword() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
+                    disabled={loading || !!success}
                     className="rounded border p-2"
                 />
 
@@ -81,10 +90,10 @@ export default function ResetPassword() {
 
                 <button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || !!success}
                     className="rounded bg-black p-2 text-white disabled:opacity-50"
                 >
-                    {loading ? "Resetting..." : "Reset Password"}
+                    {loading ? "Resetting..." : success ? "Redirecting..." : "Reset Password"}
                 </button>
             </form>
         </div>
