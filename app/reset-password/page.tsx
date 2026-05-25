@@ -1,12 +1,9 @@
 "use client";
 
-import { FormEvent, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { FormEvent, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
-function ResetPasswordForm() {
-    const searchParams = useSearchParams();
-    const token = searchParams.get("token");
-
+export default function ResetPassword() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -21,8 +18,8 @@ function ResetPasswordForm() {
             return;
         }
 
-        if (!token) {
-            setError("Invalid or missing token");
+        if (password.length < 6) {
+            setError("Password must be at least 6 characters long");
             return;
         }
 
@@ -31,21 +28,14 @@ function ResetPasswordForm() {
         setSuccess("");
 
         try {
-            const response = await fetch("/api/auth/reset-password", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    token,
-                    password,
-                }),
+            const supabase = createClient();
+
+            const { error: updateError } = await supabase.auth.updateUser({
+                password: password,
             });
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                setError(data.error || "Failed to reset password");
+            if (updateError) {
+                setError(updateError.message);
                 return;
             }
 
@@ -91,20 +81,12 @@ function ResetPasswordForm() {
 
                 <button
                     type="submit"
-                    disabled={loading || !token}
+                    disabled={loading}
                     className="rounded bg-black p-2 text-white disabled:opacity-50"
                 >
                     {loading ? "Resetting..." : "Reset Password"}
                 </button>
             </form>
         </div>
-    );
-}
-
-export default function ResetPassword() {
-    return (
-        <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading...</div>}>
-            <ResetPasswordForm />
-        </Suspense>
     );
 }
